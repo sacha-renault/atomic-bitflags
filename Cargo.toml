@@ -9,6 +9,7 @@ readme = "README.md"
 documentation = "https://docs.rs/atomic-bitflags"
 keywords = ["atomic", "bitflags", "flags", "lock-free", "concurrency"]
 categories = ["concurrency"]
+repository = "https://github.com/sacha-renault/atomic-bitflags"
 
 [dependencies]
 bitflags = "2.13.2"
