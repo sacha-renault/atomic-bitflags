@@ -88,7 +88,7 @@ fn fetch_operations() {
 fn fetch_xor_and_swap_return_previous_state() {
     let flags = AtomicFlags::new(TestFlags::A | TestFlags::B);
 
-    let previous = flags.fetch_xor(TestFlags::B | TestFlags::C, Ordering::SeqCst);
+    let previous = flags.toggle(TestFlags::B | TestFlags::C, Ordering::SeqCst);
     assert_eq!(previous, TestFlags::A | TestFlags::B);
     assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A | TestFlags::C);
 

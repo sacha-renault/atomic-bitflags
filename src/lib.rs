@@ -94,7 +94,7 @@ where
 
     /// Const constructor from an already-built atomic.
     ///
-    /// Less ergnonomic than `new` but allow to build this struct from a const context
+    /// Less ergonomic than `new` but allow to build this struct from a const context
     /// (i.e. static flags).
     ///
     /// ```
@@ -126,13 +126,14 @@ where
         F::from_bits_retain(F::Bits::load(&self.storage, ordering))
     }
 
-    /// Keep bits that are set in both current and `flags`. Return previous value.
+    /// Atomically replaces the value with `current & flags` returning the previous value.
     #[inline]
     pub fn fetch_and(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_and(&self.storage, flags.bits(), ordering))
     }
 
-    /// Keep bits that are set in both current or `flags`. Return previous value.
+    /// Atomically replaces the value with `current | flags`, returning the
+    /// previous value.
     #[inline]
     pub fn fetch_or(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_or(&self.storage, flags.bits(), ordering))
@@ -186,6 +187,7 @@ where
     }
 
     /// Clears all flags.
+    #[inline]
     pub fn clear(&self, ordering: Ordering) {
         self.store(F::empty(), ordering);
     }
