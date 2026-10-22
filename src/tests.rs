@@ -198,3 +198,13 @@ fn take_claims_a_flag_only_once() {
     assert_eq!(claimed, 1);
     assert_eq!(flags.load(Ordering::SeqCst), TestFlags::empty());
 }
+
+#[test]
+fn debug_shows_the_current_flags() {
+    let flags = AtomicFlags::new(TestFlags::A | TestFlags::C);
+
+    assert_eq!(
+        format!("{:?}", flags),
+        format!("{:?}", TestFlags::A | TestFlags::C)
+    );
+}

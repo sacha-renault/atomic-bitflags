@@ -36,6 +36,7 @@
 //! assert!(current.contains(Features::FAST | Features::SAFE));
 //! ```
 
+use std::fmt;
 use std::sync::atomic::Ordering;
 
 use bitflags::Flags;
@@ -65,6 +66,18 @@ where
 {
     fn default() -> Self {
         Self::new(F::default())
+    }
+}
+
+impl<F> fmt::Debug for AtomicFlags<F>
+where
+    F: Flags,
+    F::Bits: AtomicBits,
+    F: Copy,
+    F: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.load(Ordering::SeqCst).fmt(f)
     }
 }
 
