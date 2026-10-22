@@ -1,0 +1,14 @@
+[package]
+name = "atomic-bitflags"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Atomic storage for bitflags flag sets"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+documentation = "https://docs.rs/atomic-bitflags"
+keywords = ["atomic", "bitflags", "flags", "lock-free", "concurrency"]
+categories = ["concurrency"]
+
+[dependencies]
+bitflags = "2.13.2"
