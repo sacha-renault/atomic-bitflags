@@ -87,10 +87,9 @@ where
     F::Bits: AtomicBits,
     F: Copy,
 {
+    #[inline]
     pub fn new(flags: F) -> Self {
-        Self {
-            storage: F::Bits::new(flags.bits()),
-        }
+        Self::from_storage(F::Bits::new(flags.bits()))
     }
 
     /// Const constructor from an already-built atomic.
@@ -122,23 +121,33 @@ where
         F::Bits::store(&self.storage, flags.bits(), ordering);
     }
 
+    #[inline]
     pub fn load(&self, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::load(&self.storage, ordering))
     }
 
-    /// Atomically clears `flags`, returning the previous value.
+    /// Keep bits that are set in both current and `flags`. Return previous value.
+    #[inline]
     pub fn fetch_and(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_and(&self.storage, flags.bits(), ordering))
     }
 
-    /// Atomically sets `flags`, returning the previous value.
+    /// Keep bits that are set in both current or `flags`. Return previous value.
+    #[inline]
     pub fn fetch_or(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_or(&self.storage, flags.bits(), ordering))
     }
 
     /// Atomically toggles `flags`, returning the previous value.
+    #[inline]
     pub fn fetch_xor(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_xor(&self.storage, flags.bits(), ordering))
+    }
+
+    /// Synonymous with `fetch_xor`.
+    #[inline]
+    pub fn toggle(&self, flags: F, ordering: Ordering) -> F {
+        self.fetch_xor(flags, ordering)
     }
 
     /// Atomically replaces the value with `!(current & flags)`, returning the
@@ -146,11 +155,13 @@ where
     ///
     /// This follows the standard atomic `fetch_nand`: the result is not
     /// restricted to `flags`, so bits outside the mask are set.
+    #[inline]
     pub fn fetch_nand(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::fetch_nand(&self.storage, flags.bits(), ordering))
     }
 
     /// Atomically replaces the value with `flags`, returning the previous value.
+    #[inline]
     pub fn swap(&self, flags: F, ordering: Ordering) -> F {
         F::from_bits_retain(F::Bits::swap(&self.storage, flags.bits(), ordering))
     }
@@ -159,6 +170,7 @@ where
     ///
     /// Returns an empty set if none of `flags` were set. Other bits are left
     /// untouched.
+    #[inline]
     pub fn take(&self, flags: F, ordering: Ordering) -> F {
         let previous = self.fetch_and(flags.complement(), ordering);
         previous.intersection(flags)
@@ -168,6 +180,7 @@ where
     ///
     /// Does not modify the stored value. The result is a snapshot from a single
     /// load; use [`take`](Self::take) to claim flags atomically.
+    #[inline]
     pub fn peek(&self, flags: F, ordering: Ordering) -> F {
         self.load(ordering).intersection(flags)
     }
@@ -178,16 +191,19 @@ where
     }
 
     /// Consumes the atomic and returns the flags.
+    #[inline]
     pub fn into_inner(self) -> F {
         F::from_bits_retain(F::Bits::into_inner(self.storage))
     }
 
     /// Atomically sets the bits in `flags`, returning the previous value.
+    #[inline]
     pub fn set(&self, flags: F, ordering: Ordering) -> F {
         self.fetch_or(flags, ordering)
     }
 
     /// Atomically clears the bits in `flags`, returning the previous value.
+    #[inline]
     pub fn unset(&self, flags: F, ordering: Ordering) -> F {
         self.fetch_and(flags.complement(), ordering)
     }
