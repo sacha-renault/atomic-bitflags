@@ -93,6 +93,31 @@ where
         }
     }
 
+    /// Const constructor from an already-built atomic.
+    ///
+    /// Less ergnonomic than `new` but allow to build this struct from a const context
+    /// (i.e. static flags).
+    ///
+    /// ```
+    /// use std::sync::atomic::AtomicU8;
+    /// use atomic_bitflags::AtomicFlags;
+    /// use bitflags::bitflags;
+    ///
+    /// bitflags! {
+    ///     #[derive(Clone, Copy)]
+    ///     struct Features: u8 {
+    ///         const CACHE = 1 << 0;
+    ///     }
+    /// }
+    ///
+    /// static FEATURES: AtomicFlags<Features> =
+    ///     AtomicFlags::from_storage(AtomicU8::new(Features::CACHE.bits()));
+    /// ```
+    pub const fn from_storage(storage: <F::Bits as AtomicBits>::Storage) -> Self {
+        Self { storage }
+    }
+
+    #[inline]
     pub fn store(&self, flags: F, ordering: Ordering) {
         F::Bits::store(&self.storage, flags.bits(), ordering);
     }
