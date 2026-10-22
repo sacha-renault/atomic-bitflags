@@ -1,0 +1,27 @@
+name: audit
+
+on:
+  schedule:
+    # Mondays at 04:35 UTC. Off the hour on purpose: runs scheduled at :00
+    # are often delayed by GitHub's scheduler.
+    - cron: "35 4 * * 1"
+  push:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # scheduled runs open an issue per advisory
+      checks: write # push runs report a failed check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
