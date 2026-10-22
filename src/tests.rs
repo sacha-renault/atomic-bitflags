@@ -250,3 +250,43 @@ fn try_update_applies_or_aborts() {
     assert_eq!(previous, Err(TestFlags::A | TestFlags::B));
     assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A | TestFlags::B);
 }
+
+#[test]
+fn unset_preserves_unknown_bits() {
+    let unknown = TestFlags::from_bits_retain(0b1000_0000);
+    let flags = AtomicFlags::new(TestFlags::A | unknown);
+
+    let previous = flags.unset(TestFlags::A, Ordering::SeqCst);
+    assert_eq!(previous, TestFlags::A | unknown);
+    assert_eq!(flags.load(Ordering::SeqCst), unknown);
+}
+
+#[test]
+fn unset_clears_requested_unknown_bits() {
+    let unknown = TestFlags::from_bits_retain(0b1000_0000);
+    let flags = AtomicFlags::new(TestFlags::A | TestFlags::B | unknown);
+
+    let previous = flags.unset(unknown, Ordering::SeqCst);
+    assert_eq!(previous, TestFlags::A | TestFlags::B | unknown);
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A | TestFlags::B);
+}
+
+#[test]
+fn take_preserves_unknown_bits_that_were_not_requested() {
+    let unknown = TestFlags::from_bits_retain(0b1000_0000);
+    let flags = AtomicFlags::new(TestFlags::A | TestFlags::B | unknown);
+
+    let taken = flags.take(TestFlags::A, Ordering::SeqCst);
+    assert_eq!(taken, TestFlags::A);
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::B | unknown);
+}
+
+#[test]
+fn take_returns_and_clears_requested_unknown_bits() {
+    let unknown = TestFlags::from_bits_retain(0b1000_0000);
+    let flags = AtomicFlags::new(TestFlags::A | unknown);
+
+    let taken = flags.take(unknown, Ordering::SeqCst);
+    assert_eq!(taken.bits(), unknown.bits());
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A);
+}

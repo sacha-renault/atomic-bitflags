@@ -250,7 +250,8 @@ where
     /// untouched.
     #[inline]
     pub fn take(&self, flags: F, ordering: Ordering) -> F {
-        let previous = self.fetch_and(flags.complement(), ordering);
+        let complement = Self::retained_complement(flags);
+        let previous = self.fetch_and(complement, ordering);
         previous.intersection(flags)
     }
 
@@ -284,6 +285,16 @@ where
     /// Atomically clears the bits in `flags`, returning the previous value.
     #[inline]
     pub fn unset(&self, flags: F, ordering: Ordering) -> F {
-        self.fetch_and(flags.complement(), ordering)
+        let complement = Self::retained_complement(flags);
+        self.fetch_and(complement, ordering)
+    }
+
+    /// Return the complement with retained instead of truncated mode.
+    ///
+    /// This is useful for take & unset that would otherwise clear unknown
+    /// bits, contradicting the documentation.
+    #[inline]
+    fn retained_complement(flags: F) -> F {
+        F::from_bits_retain(!flags.bits())
     }
 }
