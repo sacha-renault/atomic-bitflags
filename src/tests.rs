@@ -208,3 +208,45 @@ fn debug_shows_the_current_flags() {
         format!("{:?}", TestFlags::A | TestFlags::C)
     );
 }
+
+#[test]
+fn compare_exchange_swaps_on_match() {
+    let flags = AtomicFlags::new(TestFlags::A);
+
+    assert_eq!(
+        flags.compare_exchange(
+            TestFlags::A,
+            TestFlags::B,
+            Ordering::SeqCst,
+            Ordering::SeqCst
+        ),
+        Ok(TestFlags::A)
+    );
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::B);
+
+    assert_eq!(
+        flags.compare_exchange(
+            TestFlags::A,
+            TestFlags::C,
+            Ordering::SeqCst,
+            Ordering::SeqCst
+        ),
+        Err(TestFlags::B)
+    );
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::B);
+}
+
+#[test]
+fn try_update_applies_or_aborts() {
+    let flags = AtomicFlags::new(TestFlags::A);
+
+    let previous = flags.try_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+        Some(current | TestFlags::B)
+    });
+    assert_eq!(previous, Ok(TestFlags::A));
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A | TestFlags::B);
+
+    let previous = flags.try_update(Ordering::SeqCst, Ordering::SeqCst, |_| None);
+    assert_eq!(previous, Err(TestFlags::A | TestFlags::B));
+    assert_eq!(flags.load(Ordering::SeqCst), TestFlags::A | TestFlags::B);
+}

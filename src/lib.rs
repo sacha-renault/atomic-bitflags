@@ -167,6 +167,83 @@ where
         F::from_bits_retain(F::Bits::swap(&self.storage, flags.bits(), ordering))
     }
 
+    /// Atomically stores `new` if the current value is `current`.
+    ///
+    /// Returns `Ok(previous)` on success and `Err(actual)` on failure.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `failure` is stronger than `success`.
+    #[inline]
+    pub fn compare_exchange(
+        &self,
+        current: F,
+        new: F,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<F, F> {
+        F::Bits::compare_exchange(&self.storage, current.bits(), new.bits(), success, failure)
+            .map(F::from_bits_retain)
+            .map_err(F::from_bits_retain)
+    }
+
+    /// Like [`compare_exchange`](Self::compare_exchange), but may fail
+    /// spuriously.
+    ///
+    /// Use it inside a retry loop where a spurious failure is harmless; prefer
+    /// [`compare_exchange`](Self::compare_exchange) otherwise.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `failure` is stronger than `success`.
+    #[inline]
+    pub fn compare_exchange_weak(
+        &self,
+        current: F,
+        new: F,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<F, F> {
+        F::Bits::compare_exchange_weak(&self.storage, current.bits(), new.bits(), success, failure)
+            .map(F::from_bits_retain)
+            .map_err(F::from_bits_retain)
+    }
+
+    /// Atomically updates the value using `f`, returning the previous value.
+    ///
+    /// `f` receives the current value and returns the new one, or `None` to
+    /// abort. It may run more than once if another thread changes the value.
+    ///
+    /// Returns `Ok(previous)` on success and `Err(current)` if `f` returns
+    /// `None`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `fetch_order` is `Release` or `AcqRel`, or stronger than
+    /// `set_order`.
+    #[inline]
+    pub fn try_update<Op>(
+        &self,
+        set_order: Ordering,
+        fetch_order: Ordering,
+        mut f: Op,
+    ) -> Result<F, F>
+    where
+        Op: FnMut(F) -> Option<F>,
+    {
+        let mut previous = self.load(fetch_order);
+        loop {
+            let new = match f(previous) {
+                Some(new) => new,
+                None => return Err(previous),
+            };
+            match self.compare_exchange_weak(previous, new, set_order, fetch_order) {
+                Ok(previous) => return Ok(previous),
+                Err(actual) => previous = actual,
+            }
+        }
+    }
+
     /// Atomically clears `flags` and returns the subset that was set.
     ///
     /// Returns an empty set if none of `flags` were set. Other bits are left

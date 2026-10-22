@@ -65,9 +65,12 @@ share it. `AtomicFlags` is `Send + Sync`.
 | Method | Operation | Returns |
 | --- | --- | --- |
 | `new(flags)` | initialize | the new `AtomicFlags` |
+| `from_storage(atomic)` | const initialize from a pre-built atomic | the new `AtomicFlags` |
 | `load(ordering)` | atomic load | current flags |
 | `store(flags, ordering)` | atomic store | nothing |
 | `swap(flags, ordering)` | atomic swap | previous flags |
+| `compare_exchange(current, new, success, failure)` | compare and swap | `Ok(previous)` or `Err(actual)` |
+| `compare_exchange_weak(current, new, success, failure)` | same, may fail spuriously | `Ok(previous)` or `Err(actual)` |
 | `set(flags, ordering)` | atomic OR | previous flags |
 | `unset(flags, ordering)` | atomic AND NOT | previous flags |
 | `clear(ordering)` | store empty | nothing |
@@ -76,11 +79,19 @@ share it. `AtomicFlags` is `Send + Sync`.
 | `fetch_and(flags, ordering)` | atomic AND | previous flags |
 | `fetch_or(flags, ordering)` | atomic OR | previous flags |
 | `fetch_xor(flags, ordering)` | atomic XOR | previous flags |
+| `toggle(flags, ordering)` | alias for `fetch_xor` | previous flags |
 | `fetch_nand(flags, ordering)` | atomic NAND | previous flags |
+| `try_update(set_order, fetch_order, f)` | apply `f` until it succeeds | `Ok(previous)` or `Err(current)` |
 | `into_inner()` | consume | final flags |
 
 `set` and `unset` are convenience wrappers around `fetch_or` and `fetch_and`.
-All `fetch_*` methods return the full previous value.
+The bitwise `fetch_*` methods return the full previous value; `try_update`
+returns `Ok(previous)` on success, or `Err(current)` if the closure returns
+`None`.
+
+`compare_exchange` and `compare_exchange_weak` follow the standard atomics: on
+failure they return the actual current value, and the failure ordering may not
+be stronger than the success ordering.
 
 `take` and `peek` return only the requested flags. `take` claims them with a
 single atomic operation; `peek` is a plain load, so another thread may change
@@ -88,6 +99,20 @@ the value immediately after.
 
 `fetch_nand` keeps the standard atomic semantics: the new value is
 `!(current & flags)`, so bits outside `flags` are set as well.
+
+### Static initialization
+
+`from_storage` is const, so a flag set can live in a `static`:
+
+```rust
+use std::sync::atomic::AtomicU8;
+
+static FEATURES: AtomicFlags<Features> =
+    AtomicFlags::from_storage(AtomicU8::new(Features::CACHE.bits()));
+```
+
+The atomic type must match the bits type of the flag set (`u8` uses `AtomicU8`,
+`u64` uses `AtomicU64`, and so on).
 
 ## Limits
 

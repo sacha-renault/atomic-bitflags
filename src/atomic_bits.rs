@@ -19,6 +19,20 @@ pub trait AtomicBits: Copy {
     fn fetch_xor(storage: &Self::Storage, bits: Self, ordering: Ordering) -> Self;
     fn fetch_nand(storage: &Self::Storage, bits: Self, ordering: Ordering) -> Self;
     fn swap(storage: &Self::Storage, bits: Self, ordering: Ordering) -> Self;
+    fn compare_exchange(
+        storage: &Self::Storage,
+        current: Self,
+        new: Self,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<Self, Self>;
+    fn compare_exchange_weak(
+        storage: &Self::Storage,
+        current: Self,
+        new: Self,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<Self, Self>;
     fn into_inner(storage: Self::Storage) -> Self;
 }
 
@@ -57,6 +71,26 @@ macro_rules! impl_atomic_bits {
 
             fn swap(storage: &Self::Storage, bits: Self, ordering: Ordering) -> Self {
                 <$atomic>::swap(storage, bits, ordering)
+            }
+
+            fn compare_exchange(
+                storage: &Self::Storage,
+                current: Self,
+                new: Self,
+                success: Ordering,
+                failure: Ordering,
+            ) -> Result<Self, Self> {
+                <$atomic>::compare_exchange(storage, current, new, success, failure)
+            }
+
+            fn compare_exchange_weak(
+                storage: &Self::Storage,
+                current: Self,
+                new: Self,
+                success: Ordering,
+                failure: Ordering,
+            ) -> Result<Self, Self> {
+                <$atomic>::compare_exchange_weak(storage, current, new, success, failure)
             }
 
             fn into_inner(storage: Self::Storage) -> Self {
